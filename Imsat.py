@@ -1,6 +1,5 @@
 
 """
-Pytorch code to reproduce the results of the clustring algorithm IMSAT [1]. The adoped data set is MNIST. The implementation in [1] is based on Chainer.
 
 [1] Weihua Hu, Takeru Miyato, Seiya Tokui, Eiichi Matsumoto and Masashi Sugiyama. Learning Discrete Representations via Information Maximizing Self-Augmented Training. In ICML, 2017. Available at http://arxiv.org/abs/1702.08720
 """
@@ -17,7 +16,8 @@ import torch.optim as optim
 import numpy as np
 import math
 from sklearn.metrics.cluster import normalized_mutual_info_score
-from sklearn.utils import linear_assignment_
+#9from sklearn.utils import linear_assignment_
+from scipy.optimize import linear_sum_assignment as linear_assignment
 from sklearn.metrics import accuracy_score
 from munkres import Munkres, print_matrix
 import itertools
