@@ -68,8 +68,9 @@ class MyDataset_Custom(torch.utils.data.Dataset):
         image_with_path =  self.image_files[index]
         #image = PIL.Image.open(image_name)
         with open(image_with_path, 'rb') as f:
-            image = Image.open(f).convert('RGB')
-
+            #image = Image.open(f).convert('RGB')
+            image = Image.open(f).convert('L')
+            
 
         target = int(image_with_path.split('/')[-2])
         if self.transform:
@@ -194,9 +195,10 @@ def vat(network, distance, x, eps_list, xi=10, Ip=1):
     d_var = d
     if use_cuda:
         d_var = d_var.to(device)
-    eps = args.prop_eps * eps_list
-    eps = eps.view(-1,1)
-    y_2 = network(x + eps*d_var)
+    #eps = args.prop_eps * eps_list
+    #eps = eps.view(-1,1)
+    #y_2 = network(x + eps*d_var)
+    y_2 = network(x)  ## Here add other image instead of x
     return distance(y,y_2)
 
 def enc_aux_noubs(x):
@@ -246,7 +248,7 @@ for epoch in range(n_epoch):
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels, ind = data
-        inputs = inputs.view(-1, 28 * 28)
+        inputs = inputs.view(-1, 28 * 28) #change this accordingly
         if use_cuda:
             inputs, labels, nearest_dist, ind = inputs.to(device), labels.to(device), nearest_dist.to(device), ind.to(device)
         
@@ -276,7 +278,7 @@ for epoch in range(n_epoch):
     with torch.no_grad():
         for i, data in enumerate(testloader, 0):
             inputs, labels, ind = data
-            inputs = inputs.view(-1, 28 * 28)
+            inputs = inputs.view(-1, 28 * 28)  #change this accordingly
             if use_cuda:
                 inputs, labels = inputs.to(device), labels.to(device)
             outputs=F.softmax(net(inputs),dim=1)
