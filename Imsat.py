@@ -15,13 +15,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import math
+from glob import glob
 from sklearn.metrics.cluster import normalized_mutual_info_score
 #9from sklearn.utils import linear_assignment_
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from sklearn.metrics import accuracy_score
 from munkres import Munkres, print_matrix
 import itertools
-
+from PIL import Image
 # Settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', default=0.002, type=float, help='learning rate')
@@ -48,24 +49,61 @@ print(device)
 
 # Data
 print('==> Preparing data..')
-class MyDataset(torch.utils.data.Dataset):
-    # new dataset class that allows to get the sample indices of mini-batch
-    def __init__(self,root,download, train, transform):
-        self.MNIST = torchvision.datasets.MNIST(root=root,
-                                        download=download,
-                                        train=train,
-                                        transform=transform)
-    def __getitem__(self, index):
-        data, target = self.MNIST[index]
-        return data, target, index
-    
+
+##
+#https://medium.com/bivek-adhikari/creating-custom-datasets-and-dataloaders-with-pytorch-7e9d2f06b660
+
+class MyDataset_Custom(torch.utils.data.Dataset):
+
+    def __init__(self, image_dir, transform=None):
+        self.image_dir = image_dir
+        self.image_files =  glob(image_dir+"/*/*" )
+
+        self.transform = transform
+
     def __len__(self):
-        return len(self.MNIST)
+        return len(self.image_files)
+
+    def __getitem__(self, index):
+        image_with_path =  self.image_files[index]
+        #image = PIL.Image.open(image_name)
+        with open(image_with_path, 'rb') as f:
+            image = Image.open(f).convert('RGB')
+
+
+        target = int(image_with_path.split('/')[-2])
+        if self.transform:
+            image = self.transform(image)
+        return image, target, index
+
+##
+
+
+# class MyDataset(torch.utils.data.Dataset):
+#     # new dataset class that allows to get the sample indices of mini-batch
+#     def __init__(self,root,download, train, transform):
+#         self.MNIST = torchvision.datasets.MNIST(root=root,
+#                                         download=download,
+#                                         train=train,
+#                                         transform=transform)
+#     def __getitem__(self, index):
+#         data, target = self.MNIST[index]
+#         return data, target, index   # Here just return the augmented and original one SIDE BY SIDE
+    
+#     def __len__(self):
+#         return len(self.MNIST)
+
+#transform_train = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
+# trainset = MyDataset(root='./data', train=True, download=True, transform=transform_train)
+# testset = MyDataset(root='./data', train=False, download=False, transform=transform_train)
+# trainset = trainset + testset
 
 transform_train = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
-trainset = MyDataset(root='./data', train=True, download=True, transform=transform_train)
-testset = MyDataset(root='./data', train=False, download=False, transform=transform_train)
+trainset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training', transform=transform_train)
+testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
 trainset = trainset + testset
+
+
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 testloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=False, num_workers=2)
 tot_cl = 10
@@ -215,7 +253,7 @@ for epoch in range(n_epoch):
         # forward
         aver_entropy, entropy_aver = Compute_entropy(net, Variable(inputs))
         r_mutual_i = aver_entropy - args.mu * entropy_aver
-        loss_ul = loss_unlabeled(Variable(inputs), nearest_dist[ind])
+        loss_ul = loss_unlabeled(Variable(inputs), nearest_dist[ind])   # Here PASS the second (augmented) input which will be used in VAT function. 
         
         loss = loss_ul + args.lam * r_mutual_i
       
