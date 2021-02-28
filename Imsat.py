@@ -105,7 +105,10 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 # testset = MyDataset(root='./data', train=False, download=False, transform=transform_train)
 # trainset = trainset + testset
 
-transform_train = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
+transform_train = transforms.Compose([transforms.Resize(28), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
+#trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
+#augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
+
 trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/batsnet_train/1", 
 augment_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
@@ -256,6 +259,7 @@ for epoch in range(n_epoch):
         # get the inputs
         inputs, inputs_augmented, ind = data
         inputs = inputs.view(-1, 28 * 28) #change this accordingly
+        inputs_augmented = inputs_augmented.view(-1, 28 * 28) 
         if use_cuda:
             inputs, inputs_augmented, nearest_dist, ind = inputs.to(device), inputs_augmented.to(device), nearest_dist.to(device), ind.to(device)
         
@@ -277,27 +281,29 @@ for epoch in range(n_epoch):
         # loss accumulation
         running_loss += loss.item()
 
-    # statistics
+
+    #statistics
     net.eval()
-    p_pred = np.zeros((len(trainset),10))
-    y_pred = np.zeros(len(trainset))
-    y_t = np.zeros(len(trainset))
+    #p_pred = np.zeros((len(trainset),10))
+    #y_pred = np.zeros(len(trainset))
+    #y_t = np.zeros(len(trainset))
     with torch.no_grad():
-        for i, data in enumerate(testloader, 0):
-            inputs, labels, ind = data
+        for i, data in enumerate(trainloader, 0):
+            inputs, inputs_augmented, ind = data
             inputs = inputs.view(-1, 28 * 28)  #change this accordingly
             if use_cuda:
-                inputs, labels = inputs.to(device), labels.to(device)
+                inputs = inputs.to(device)
             outputs=F.softmax(net(inputs),dim=1)
-            y_pred[i*batch_size:(i+1)*batch_size]=torch.argmax(outputs,dim=1).cpu().numpy()
-            p_pred[i*batch_size:(i+1)*batch_size,:]=outputs.detach().cpu().numpy()
-            y_t[i*batch_size:(i+1)*batch_size]=labels.cpu().numpy()
-    acc = compute_accuracy(y_pred, y_t)
-    print("epoch: ", epoch+1, "\t total lost = {:.4f} " .format(running_loss/(i+1)), "\t MI = {:.4f}" .format(normalized_mutual_info_score(y_t, y_pred)), "\t acc = {:.4f} " .format(acc))
+            #y_pred[i*batch_size:(i+1)*batch_size]=torch.argmax(outputs,dim=1).cpu().numpy()
+            #p_pred[i*batch_size:(i+1)*batch_size,:]=outputs.detach().cpu().numpy()
+            #y_t[i*batch_size:(i+1)*batch_size]=labels.cpu().numpy()
+    #acc = compute_accuracy(y_pred, y_t)
+    # print("epoch: ", epoch+1, "\t total lost = {:.4f} " .format(running_loss/(i+1)), "\t MI = {:.4f}" .format(normalized_mutual_info_score(y_t, y_pred)), "\t acc = {:.4f} " .format(acc))
+    print("epoch: ", epoch+1, "\t total lost = {:.4f} " .format(running_loss/(i+1)))
 
     # save the "best" parameters
-    if acc > best_acc:
-        best_acc = acc
+    #if acc > best_acc:
+     #   best_acc = acc
     # show results
 print("Best accuracy = {:.4f}" .format(best_acc))
 print('==> Finished Training..')
