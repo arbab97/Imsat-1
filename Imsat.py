@@ -109,8 +109,8 @@ transform_train = transforms.Compose([transforms.Resize(28), transforms.ToTensor
 #trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
 #augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
 
-trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/batsnet_train/1", 
-augment_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/augmented", transform=transform_train)
+trainset=MyDataset_Custom(image_dir="/content/batsnet_train/1", 
+augment_dir="/content/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
 #trainset = trainset + testset
 
@@ -247,9 +247,7 @@ def compute_accuracy(y_pred, y_t):
 
 # Training
 print('==> Start training..')
-nearest_dist = torch.from_numpy(upload_nearest_dist(args.dataset))  #THIS BECOMES USELESS BECAUSE WE ARE USING OUR OWN AUGMENTATION
-if use_cuda:
-    nearest_dist = nearest_dist.to(device)
+
 best_acc = 0
 for epoch in range(n_epoch):
     net.train()
@@ -261,12 +259,12 @@ for epoch in range(n_epoch):
         inputs = inputs.view(-1, 28 * 28) #change this accordingly
         inputs_augmented = inputs_augmented.view(-1, 28 * 28) 
         if use_cuda:
-            inputs, inputs_augmented, nearest_dist, ind = inputs.to(device), inputs_augmented.to(device), nearest_dist.to(device), ind.to(device)
+            inputs, inputs_augmented, ind = inputs.to(device), inputs_augmented.to(device) , ind.to(device)
         
         # forward
         aver_entropy, entropy_aver = Compute_entropy(net, Variable(inputs))
         r_mutual_i = aver_entropy - args.mu * entropy_aver
-        loss_ul = loss_unlabeled(Variable(inputs),Variable(inputs_augmented), nearest_dist[ind])   # Here PASS the second (augmented) input which will be used in VAT function. 
+        loss_ul = loss_unlabeled(Variable(inputs),Variable(inputs_augmented), 0)   # Here PASS the second (augmented) input which will be used in VAT function. 
         
         loss = loss_ul + args.lam * r_mutual_i
       
