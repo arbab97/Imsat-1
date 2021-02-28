@@ -55,10 +55,10 @@ print('==> Preparing data..')
 
 class MyDataset_Custom(torch.utils.data.Dataset):
 
-    def __init__(self, image_dir, transform=None):
+    def __init__(self, image_dir,augment_dir, transform=None):
         self.image_dir = image_dir
-        self.image_files =  glob(image_dir+"/*/*" )
-
+        self.image_files =  glob(image_dir+"/*" )
+        self.augment_dir=augment_dir
         self.transform = transform
 
     def __len__(self):
@@ -66,16 +66,22 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image_with_path =  self.image_files[index]
+        real_image_name=image_with_path.split('/')[-1]
+        augment_image_with_path=os.path.join(self.augment_dir, real_image_name)
         #image = PIL.Image.open(image_name)
         with open(image_with_path, 'rb') as f:
             #image = Image.open(f).convert('RGB')
             image = Image.open(f).convert('L')
-            
+        with open(augment_image_with_path, 'rb') as f:
+            #image = Image.open(f).convert('RGB')
+            augment_image = Image.open(f).convert('L')
+        
 
-        target = int(image_with_path.split('/')[-2])
+        #target = int(image_with_path.split('/')[-2])
         if self.transform:
             image = self.transform(image)
-        return image, target, index
+            augment_image = self.transform(augment_image)
+        return image, augment_image, index
 
 ##
 
@@ -100,13 +106,14 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 # trainset = trainset + testset
 
 transform_train = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
-trainset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training', transform=transform_train)
-testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
-trainset = trainset + testset
+trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/batsnet_train/1", 
+augment_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/augmented", transform=transform_train)
+#testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
+#trainset = trainset + testset
 
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
-testloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=False, num_workers=2)
+#testloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=False, num_workers=2)
 tot_cl = 10
 
 # Deep Neural Network
@@ -175,7 +182,7 @@ def distance(y0, y1):
     # compute KL divergence between the outputs of the newtrok
     return kl(F.softmax(y0,dim=1), F.softmax(y1,dim=1))
 
-def vat(network, distance, x, eps_list, xi=10, Ip=1):
+def vat(network, distance, x,x2, eps_list, xi=10, Ip=1):
     # compute the regularized penality [eq. (4) & eq. (6), 1]
     
     with torch.no_grad():
@@ -198,16 +205,16 @@ def vat(network, distance, x, eps_list, xi=10, Ip=1):
     #eps = args.prop_eps * eps_list
     #eps = eps.view(-1,1)
     #y_2 = network(x + eps*d_var)
-    y_2 = network(x)  ## Here add other image instead of x
+    y_2 = network(x2)  ## Here add other image instead of x  i.e. x2/inputs_augmented
     return distance(y,y_2)
 
 def enc_aux_noubs(x):
     # not updating gamma and beta in batchs
     return net(x, update_batch_stats=False)
 
-def loss_unlabeled(x, eps_list):
+def loss_unlabeled(x,x2, eps_list):
     # to use enc_aux_noubs
-    L = vat(enc_aux_noubs, distance, x, eps_list)
+    L = vat(enc_aux_noubs, distance, x, x2, eps_list)
     return L
 
 def upload_nearest_dist(dataset):
@@ -237,7 +244,7 @@ def compute_accuracy(y_pred, y_t):
 
 # Training
 print('==> Start training..')
-nearest_dist = torch.from_numpy(upload_nearest_dist(args.dataset))
+nearest_dist = torch.from_numpy(upload_nearest_dist(args.dataset))  #THIS BECOMES USELESS BECAUSE WE ARE USING OUR OWN AUGMENTATION
 if use_cuda:
     nearest_dist = nearest_dist.to(device)
 best_acc = 0
@@ -247,15 +254,15 @@ for epoch in range(n_epoch):
     #   start_time = time.clock()
     for i, data in enumerate(trainloader, 0):
         # get the inputs
-        inputs, labels, ind = data
+        inputs, inputs_augmented, ind = data
         inputs = inputs.view(-1, 28 * 28) #change this accordingly
         if use_cuda:
-            inputs, labels, nearest_dist, ind = inputs.to(device), labels.to(device), nearest_dist.to(device), ind.to(device)
+            inputs, inputs_augmented, nearest_dist, ind = inputs.to(device), inputs_augmented.to(device), nearest_dist.to(device), ind.to(device)
         
         # forward
         aver_entropy, entropy_aver = Compute_entropy(net, Variable(inputs))
         r_mutual_i = aver_entropy - args.mu * entropy_aver
-        loss_ul = loss_unlabeled(Variable(inputs), nearest_dist[ind])   # Here PASS the second (augmented) input which will be used in VAT function. 
+        loss_ul = loss_unlabeled(Variable(inputs),Variable(inputs_augmented), nearest_dist[ind])   # Here PASS the second (augmented) input which will be used in VAT function. 
         
         loss = loss_ul + args.lam * r_mutual_i
       
