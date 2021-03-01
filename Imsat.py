@@ -31,7 +31,7 @@ parser.add_argument('--lam', type=float, help='trade-off parameter for mutual in
 parser.add_argument('--mu', type=float, help='trade-off parameter for entropy minimization and entropy maximization',default=4)
 parser.add_argument('--prop_eps', type=float, help='epsilon', default=0.25)
 parser.add_argument('--hidden_list', type=str, help='hidden size list', default='1200-1200')
-parser.add_argument('--n_epoch', type=int, help='number of epoches when maximizing', default=1)
+parser.add_argument('--n_epoch', type=int, help='number of epoches when maximizing', default=50)
 parser.add_argument('--dataset', type=str, help='which dataset to use', default='mnist')
 args = parser.parse_args()
 
@@ -70,11 +70,11 @@ class MyDataset_Custom(torch.utils.data.Dataset):
         augment_image_with_path=os.path.join(self.augment_dir, real_image_name)
         #image = PIL.Image.open(image_name)
         with open(image_with_path, 'rb') as f:
-            #image = Image.open(f).convert('RGB')
-            image = Image.open(f).convert('L')
+            image = Image.open(f).convert('RGB')
+            #image = Image.open(f).convert('L')
         with open(augment_image_with_path, 'rb') as f:
-            #image = Image.open(f).convert('RGB')
-            augment_image = Image.open(f).convert('L')
+            augment_image = Image.open(f).convert('RGB')
+            #augment_image = Image.open(f).convert('L')
         
 
         #target = int(image_with_path.split('/')[-2])
@@ -105,12 +105,12 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 # testset = MyDataset(root='./data', train=False, download=False, transform=transform_train)
 # trainset = trainset + testset
 
-transform_train = transforms.Compose([transforms.Resize(28), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
+transform_train = transforms.Compose([transforms.Resize(360), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
 #trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
 #augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
 
-trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/batsnet_train/1", 
-augment_dir="/home/rabi/Documents/Thesis/audio data analysis/audio-clustering/plots/spectrograms/augmented", transform=transform_train)
+trainset=MyDataset_Custom(image_dir="/content/batsnet_train/1", 
+augment_dir="/content/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
 #trainset = trainset + testset
 
@@ -123,7 +123,7 @@ tot_cl = 10
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 1200)
+        self.fc1 = nn.Linear(3*360 * 360, 1200)
         torch.nn.init.normal_(self.fc1.weight,std=0.1*math.sqrt(2/(28*28)))
         self.fc1.bias.data.fill_(0)
         self.fc2 = nn.Linear(1200, 1200)
@@ -256,8 +256,8 @@ for epoch in range(n_epoch):
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, inputs_augmented, ind, image_with_path = data
-        inputs = inputs.view(-1, 28 * 28) #change this accordingly
-        inputs_augmented = inputs_augmented.view(-1, 28 * 28) 
+        inputs = inputs.view(-1, 3*360 * 360) #change this accordingly
+        inputs_augmented = inputs_augmented.view(-1, 3*360 * 360) 
         if use_cuda:
             inputs, inputs_augmented, ind = inputs.to(device), inputs_augmented.to(device) , ind.to(device)
         
@@ -288,7 +288,7 @@ for epoch in range(n_epoch):
     with torch.no_grad():
         for i, data in enumerate(trainloader, 0):
             inputs, inputs_augmented, ind, image_with_path = data
-            inputs = inputs.view(-1, 28 * 28)  #change this accordingly
+            inputs = inputs.view(-1, 3*360 * 360)  #change this accordingly
             if use_cuda:
                 inputs = inputs.to(device)
             outputs=F.softmax(net(inputs),dim=1)
@@ -309,7 +309,7 @@ for epoch in range(n_epoch):
         with torch.no_grad():
             for i, data in enumerate(trainloader, 0):
                 inputs, inputs_augmented, ind, image_with_path = data
-                inputs = inputs.view(-1, 28 * 28)  #change this accordingly
+                inputs = inputs.view(-1, 3*360 * 360)  #change this accordingly
                 if use_cuda:
                     inputs = inputs.to(device)
                 outputs=F.softmax(net(inputs),dim=1)
@@ -317,7 +317,8 @@ for epoch in range(n_epoch):
                 all_image_with_path=all_image_with_path+(list(image_with_path))
                 all_predictions=all_predictions+(list(predictions))
         final_result={"Image Name":all_image_with_path, "Prediction":all_predictions}
-
+print("-------------------")
+print(final_result)  
     # save the "best" parameters
     #if acc > best_acc:
      #   best_acc = acc
