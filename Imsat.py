@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import math
+import pandas as pd
 from glob import glob
 from sklearn.metrics.cluster import normalized_mutual_info_score
 #9from sklearn.utils import linear_assignment_
@@ -317,6 +318,11 @@ for epoch in range(n_epoch):
                 all_image_with_path=all_image_with_path+(list(image_with_path))
                 all_predictions=all_predictions+(list(predictions))
         final_result={"Image Name":all_image_with_path, "Prediction":all_predictions}
+        output_file_name_results="results_imsat.csv"
+
+        (pd.DataFrame(final_result).to_csv(output_file_name_results, header=True, mode='w'))
+
+
 print("-------------------")
 print(final_result)  
     # save the "best" parameters
