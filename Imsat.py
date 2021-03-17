@@ -109,16 +109,16 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 transform_train = transforms.Compose([transforms.Resize(360), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
 #trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
 #augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
-
-trainset=MyDataset_Custom(image_dir="/content/batsnet_train/1", 
-augment_dir="/content/augmented", transform=transform_train)
+tot_cl = 10
+trainset=MyDataset_Custom(image_dir="/content/spectrograms_normalized/batsnet_train/1", 
+augment_dir="/content/spectrograms_normalized/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
 #trainset = trainset + testset
 
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 #testloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=False, num_workers=2)
-tot_cl = 10
+
 
 # Deep Neural Network
 class Net(nn.Module):
