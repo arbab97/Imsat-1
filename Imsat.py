@@ -26,8 +26,8 @@ import itertools
 from PIL import Image
 # Settings
 parser = argparse.ArgumentParser()
-parser.add_argument('--lr', default=0.002, type=float, help='learning rate')
-parser.add_argument('--batch_size', '-b', default=5, type=int, help='size of the batch during training')
+parser.add_argument('--lr', default=0.02, type=float, help='learning rate')
+parser.add_argument('--batch_size', '-b', default=10, type=int, help='size of the batch during training')
 parser.add_argument('--lam', type=float, help='trade-off parameter for mutual information and smooth regularization',default=0.1)
 parser.add_argument('--mu', type=float, help='trade-off parameter for entropy minimization and entropy maximization',default=4)
 parser.add_argument('--prop_eps', type=float, help='epsilon', default=0.25)
@@ -106,10 +106,10 @@ class MyDataset_Custom(torch.utils.data.Dataset):
 # testset = MyDataset(root='./data', train=False, download=False, transform=transform_train)
 # trainset = trainset + testset
 
-transform_train = transforms.Compose([transforms.Resize(360), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
+transform_train = transforms.Compose([transforms.Resize(100), transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,))])
 #trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
 #augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
-tot_cl = 10
+tot_cl = 5
 trainset=MyDataset_Custom(image_dir="/content/spectrograms_normalized/batsnet_train/1", 
 augment_dir="/content/spectrograms_normalized/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
@@ -124,13 +124,13 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuff
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(3*360 * 360, 1200)
-        torch.nn.init.normal_(self.fc1.weight,std=0.1*math.sqrt(2/(28*28)))
+        self.fc1 = nn.Linear(3*100 * 100, 1200)
+        torch.nn.init.normal_(self.fc1.weight,std=0.1*math.sqrt(2/(100*100)))
         self.fc1.bias.data.fill_(0)
         self.fc2 = nn.Linear(1200, 1200)
         torch.nn.init.normal_(self.fc2.weight,std=0.1*math.sqrt(2/1200))
         self.fc2.bias.data.fill_(0)
-        self.fc3 = nn.Linear(1200, 10)
+        self.fc3 = nn.Linear(1200, tot_cl)
         torch.nn.init.normal_(self.fc3.weight,std=0.0001*math.sqrt(2/1200))
         self.fc3.bias.data.fill_(0)
         self.bn1=nn.BatchNorm1d(1200, eps=2e-5)
@@ -257,8 +257,8 @@ for epoch in range(n_epoch):
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, inputs_augmented, ind, image_with_path = data
-        inputs = inputs.view(-1, 3*360 * 360) #change this accordingly
-        inputs_augmented = inputs_augmented.view(-1, 3*360 * 360) 
+        inputs = inputs.view(-1, 3*100 * 100) #change this accordingly
+        inputs_augmented = inputs_augmented.view(-1, 3*100 * 100) 
         if use_cuda:
             inputs, inputs_augmented, ind = inputs.to(device), inputs_augmented.to(device) , ind.to(device)
         
@@ -289,7 +289,7 @@ for epoch in range(n_epoch):
     with torch.no_grad():
         for i, data in enumerate(trainloader, 0):
             inputs, inputs_augmented, ind, image_with_path = data
-            inputs = inputs.view(-1, 3*360 * 360)  #change this accordingly
+            inputs = inputs.view(-1, 3*100 * 100)  #change this accordingly
             if use_cuda:
                 inputs = inputs.to(device)
             outputs=F.softmax(net(inputs),dim=1)
@@ -310,7 +310,7 @@ for epoch in range(n_epoch):
         with torch.no_grad():
             for i, data in enumerate(trainloader, 0):
                 inputs, inputs_augmented, ind, image_with_path = data
-                inputs = inputs.view(-1, 3*360 * 360)  #change this accordingly
+                inputs = inputs.view(-1, 3*100 * 100)  #change this accordingly
                 if use_cuda:
                     inputs = inputs.to(device)
                 outputs=F.softmax(net(inputs),dim=1)
