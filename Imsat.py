@@ -27,12 +27,12 @@ from PIL import Image
 # Settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', default=0.02, type=float, help='learning rate')
-parser.add_argument('--batch_size', '-b', default=10, type=int, help='size of the batch during training')
+parser.add_argument('--batch_size', '-b', default=200, type=int, help='size of the batch during training')
 parser.add_argument('--lam', type=float, help='trade-off parameter for mutual information and smooth regularization',default=0.1)
 parser.add_argument('--mu', type=float, help='trade-off parameter for entropy minimization and entropy maximization',default=4)
 parser.add_argument('--prop_eps', type=float, help='epsilon', default=0.25)
 parser.add_argument('--hidden_list', type=str, help='hidden size list', default='1200-1200')
-parser.add_argument('--n_epoch', type=int, help='number of epoches when maximizing', default=30)
+parser.add_argument('--n_epoch', type=int, help='number of epoches when maximizing', default=200)
 parser.add_argument('--dataset', type=str, help='which dataset to use', default='mnist')
 args = parser.parse_args()
 
@@ -110,8 +110,8 @@ transform_train = transforms.Compose([transforms.Resize(100), transforms.ToTenso
 #trainset=MyDataset_Custom(image_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", 
 #augment_dir="/home/rabi/Documents/Thesis/Imsat-1/mnist_png/training/0", transform=transform_train)
 tot_cl = 5
-trainset=MyDataset_Custom(image_dir="/content/spectrograms_normalized/batsnet_train/1", 
-augment_dir="/content/spectrograms_normalized/augmented", transform=transform_train)
+trainset=MyDataset_Custom(image_dir="/content/spectrograms_normalized_croped_128/batsnet_train/1", 
+augment_dir="/content/spectrograms_normalized_croped_128/augmented", transform=transform_train)
 #testset=MyDataset_Custom(image_dir='/home/rabi/Documents/Thesis/Imsat-1/mnist_png/testing', transform=transform_train)
 #trainset = trainset + testset
 
@@ -324,7 +324,7 @@ for epoch in range(n_epoch):
 
 
 print("-------------------")
-print(final_result)  
+# print(final_result)  
     # save the "best" parameters
     #if acc > best_acc:
      #   best_acc = acc
